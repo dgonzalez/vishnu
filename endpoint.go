@@ -27,9 +27,15 @@ type Vishu struct {
 	action    action
 }
 
-type rater func(map[string]interface{}) int
+type rater func(map[string]interface{}) uint
 
 type action func(interface{}) (map[string]interface{}, error)
+
+func New(rater rater, action action) *Vishu {
+	// TODO David: Needs default rater and default action
+	vishu := Vishu{nil, rater, action}
+	return &vishu
+}
 
 func newEndpoint(target interface{}) (*endpoint, error) {
 	if target == nil {
@@ -60,7 +66,7 @@ func (v *Vishu) Choose(action action) {
 	}
 
 	chosenEndpoint := v.endpoints[index]
-	stats, error := action(v.endpoints[index])
+	stats, error := v.action(v.endpoints[index])
 
 	if error != nil {
 		chosenEndpoint.score = 0
@@ -70,5 +76,7 @@ func (v *Vishu) Choose(action action) {
 			chosenEndpoint.circuitStatus = HalfOpen
 		})
 	}
+
+	chosenEndpoint.score = v.rater(stats)
 	chosenEndpoint.stats = stats
 }
