@@ -1,4 +1,4 @@
-package vishu
+package main
 
 import (
 	"errors"
@@ -17,23 +17,22 @@ const (
 type endpoint struct {
 	Target        interface{}
 	stats         map[string]interface{}
-	score         uint
+	score         int
 	circuitStatus circuitStatus
 }
 
 type Vishu struct {
 	endpoints []endpoint
 	rater     rater
-	action    action
 }
 
-type rater func(map[string]interface{}) uint
+type rater func(map[string]interface{}) int
 
 type action func(interface{}) (map[string]interface{}, error)
 
-func New(rater rater, action action) *Vishu {
+func New(rater rater) *Vishu {
 	// TODO David: Needs default rater and default action
-	vishu := Vishu{nil, rater, action}
+	vishu := Vishu{nil, rater}
 	return &vishu
 }
 
@@ -42,7 +41,7 @@ func newEndpoint(target interface{}) (*endpoint, error) {
 		return nil, errors.New("endpoint must not be nil")
 	}
 
-	return &endpoint{target, make(map[string]interface{}), 0, Closed}, nil
+	return &endpoint{target, make(map[string]interface{}), 500, Closed}, nil
 }
 
 func (v *Vishu) Add(target interface{}) error {
@@ -51,13 +50,11 @@ func (v *Vishu) Add(target interface{}) error {
 		return err
 	}
 	v.endpoints = append(v.endpoints, *endpoint)
-
 	return nil
 }
 
 func (v *Vishu) Choose(action action) {
-	var max uint
-	var index int
+	var max, index int
 	for i, element := range v.endpoints {
 		if element.score > max {
 			max = element.score
@@ -65,11 +62,11 @@ func (v *Vishu) Choose(action action) {
 		}
 	}
 
-	chosenEndpoint := v.endpoints[index]
-	stats, error := v.action(v.endpoints[index])
+	chosenEndpoint := &v.endpoints[index]
+	stats, error := action(v.endpoints[index].Target)
 
 	if error != nil {
-		chosenEndpoint.score = 0
+		chosenEndpoint.score = 500
 		chosenEndpoint.circuitStatus = Open
 
 		time.AfterFunc(ClosingTimeout, func() {
