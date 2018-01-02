@@ -42,7 +42,7 @@ type action func(ctx ActionCtx) (map[string]interface{}, error)
 
 // New creates a Vishu instance with a custom rating function.
 func New(rater rater, closingTimeout time.Duration) *Vishu {
-	// TODO David: Needs default rater
+	// TODO David: Needs default rater based on __execution_time
 	vishu := Vishu{nil, rater, closingTimeout}
 	return &vishu
 }
