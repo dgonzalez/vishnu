@@ -43,8 +43,8 @@ type action func(ctx ActionCtx) (map[string]interface{}, error)
 // New creates a Vishnu instance with a custom rating function.
 func New(rater rater, closingTimeout time.Duration) *Vishnu {
 	// TODO David: Needs default rater based on __execution_time
-	Vishnu := Vishnu{nil, rater, closingTimeout}
-	return &Vishnu
+	vishnu := Vishnu{nil, rater, closingTimeout}
+	return &vishnu
 }
 
 func newEndpoint(target interface{}) (*endpoint, error) {
