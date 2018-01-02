@@ -1,4 +1,4 @@
-package main
+package vishnu
 
 import (
 	"errors"
@@ -16,8 +16,8 @@ const (
 	HalfOpen = iota
 )
 
-// Vishu instance. It is the core of the module.
-type Vishu struct {
+// Vishnu instance. It is the core of the module.
+type Vishnu struct {
 	endpoints      []endpoint
 	rater          rater
 	closingTimeout time.Duration
@@ -40,11 +40,11 @@ type rater func(map[string]interface{}) int
 
 type action func(ctx ActionCtx) (map[string]interface{}, error)
 
-// New creates a Vishu instance with a custom rating function.
-func New(rater rater, closingTimeout time.Duration) *Vishu {
+// New creates a Vishnu instance with a custom rating function.
+func New(rater rater, closingTimeout time.Duration) *Vishnu {
 	// TODO David: Needs default rater based on __execution_time
-	vishu := Vishu{nil, rater, closingTimeout}
-	return &vishu
+	Vishnu := Vishnu{nil, rater, closingTimeout}
+	return &Vishnu
 }
 
 func newEndpoint(target interface{}) (*endpoint, error) {
@@ -56,7 +56,7 @@ func newEndpoint(target interface{}) (*endpoint, error) {
 }
 
 // Add adds an endpoint
-func (v *Vishu) Add(target interface{}) error {
+func (v *Vishnu) Add(target interface{}) error {
 	endpoint, err := newEndpoint(target)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (v *Vishu) Add(target interface{}) error {
 }
 
 // With selects an endpoint and executes the action
-func (v *Vishu) With(action action) {
+func (v *Vishnu) With(action action) {
 	var max, index int
 	for i, element := range v.endpoints {
 		if element.circuitStatus != Open && element.score > max {
