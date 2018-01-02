@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"math"
 	"time"
 )
 
@@ -15,9 +14,20 @@ const (
 	Closed = iota
 	// HalfOpen circuitStatus
 	HalfOpen = iota
-	// ClosingTimeout is the default HalfOpen to Closed timeout.
-	ClosingTimeout = time.Second * 30
 )
+
+// Vishu instance. It is the core of the module.
+type Vishu struct {
+	endpoints      []endpoint
+	rater          rater
+	closingTimeout time.Duration
+}
+
+// ActionCtx context to simplify calls to actions.
+type ActionCtx struct {
+	Target interface{}
+	Stats  map[string]interface{}
+}
 
 type endpoint struct {
 	Target        interface{}
@@ -26,28 +36,14 @@ type endpoint struct {
 	circuitStatus circuitStatus
 }
 
-// Vishu instance. It is the core of the module.
-type Vishu struct {
-	endpoints []endpoint
-	rater     rater
-}
-
 type rater func(map[string]interface{}) int
 
-func defaultRater(stats map[string]interface{}) int {
-	execTime := stats["__execution_time"]
-	if execTime != nil {
-		return math.MaxInt32 - int(execTime.(time.Duration))
-	}
-	return 0
-}
-
-type action func(interface{}) (map[string]interface{}, error)
+type action func(ctx ActionCtx) (map[string]interface{}, error)
 
 // New creates a Vishu instance with a custom rating function.
-func New(rater rater) *Vishu {
-	// TODO David: Needs default rater and default action
-	vishu := Vishu{nil, rater}
+func New(rater rater, closingTimeout time.Duration) *Vishu {
+	// TODO David: Needs default rater
+	vishu := Vishu{nil, rater, closingTimeout}
 	return &vishu
 }
 
@@ -69,7 +65,7 @@ func (v *Vishu) Add(target interface{}) error {
 	return nil
 }
 
-// With selects an endpoint
+// With selects an endpoint and executes the action
 func (v *Vishu) With(action action) {
 	var max, index int
 	for i, element := range v.endpoints {
@@ -83,7 +79,7 @@ func (v *Vishu) With(action action) {
 
 	// Measure the execution time as a default metric
 	start := time.Now()
-	stats, error := action(v.endpoints[index].Target)
+	stats, error := action(ActionCtx{chosenEndpoint.Target, chosenEndpoint.stats})
 	finish := time.Now()
 	elapsed := finish.Sub(start)
 	stats["__execution_time"] = elapsed
@@ -92,7 +88,7 @@ func (v *Vishu) With(action action) {
 		chosenEndpoint.score = 0
 		chosenEndpoint.circuitStatus = Open
 
-		time.AfterFunc(ClosingTimeout, func() {
+		time.AfterFunc(v.closingTimeout, func() {
 			chosenEndpoint.circuitStatus = HalfOpen
 		})
 	} else {
@@ -104,4 +100,8 @@ func (v *Vishu) With(action action) {
 		chosenEndpoint.score = v.rater(stats)
 		chosenEndpoint.stats = stats
 	}
+}
+
+func main() {
+
 }
